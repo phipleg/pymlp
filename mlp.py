@@ -3,6 +3,7 @@
 import numpy as np
 import random
 import time
+from sys import stdout
 
 class MLP():
     """ Multilayer perceptron """
@@ -11,6 +12,7 @@ class MLP():
         self.sizes = sizes
         self.biases = [np.random.randn(y,1) for y in sizes[1:]]
         self.weights = [np.random.randn(y,x) for x,y in zip(sizes[:-1],sizes[1:])]
+        print "MLP net={}".format(self.sizes)
 
     def feedforward(self, a):
         for w,b in zip(self.weights, self.biases):
@@ -18,33 +20,35 @@ class MLP():
             a = sigmoid_vec(z)
         return a
 
-    def sgd(self, tr_d, epochs, mb_len, te_d, eta, lmbda=0.0):
-        print "SGD. epochs={}, eta={}, l2reg={}, net={}".format(epochs,eta,lmbda, self.sizes)
+    def sgd(self, training_data, epochs, mini_batch_size, test_data, learning_rate, lmbda=0.0):
+        print "SGD. epochs={}, learning_rate={}, l2reg={}, mini_batch_size={}".format(epochs, learning_rate,lmbda, mini_batch_size)
         for epidx in xrange(epochs):
-            self.sgd_epoch( tr_d, epochs, epidx, mb_len, te_d, eta, lmbda)
+            self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, test_data, learning_rate, lmbda)
 
-    def sgd_epoch(self, tr_d, epochs, epidx, mb_len, te_d, eta, lmbda):
-        n = len(tr_d)
-        mini_batches = self.select_mini_batches(tr_d, mb_len)
+    def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, test_data, learning_rate, lmbda):
+        n = len(training_data)
+        mini_batches = self.select_mini_batches(training_data, mini_batch_size)
+        counter = 0
         for idx, mini_batch in enumerate(mini_batches):
-            self.update_mini_batch(mini_batch, eta, lmbda, n)
-        if te_d:
-            acc = self.evaluate(te_d)
-            print "Epoch {}/{}, test accuracy={}".format(
-                epidx, epochs, acc)
+            self.update_mini_batch(mini_batch, learning_rate, lmbda, n)
+            counter += len(mini_batch)
+            printi("Epoch {}/{}. Train {}/{}. ".format(epidx+1, epochs, counter,n))
+        if test_data:
+            acc = self.evaluate(test_data)
+            print "Test accuracy={}".format(acc)
 
-    def evaluate(self, te_d):
-        matches = sum([int(np.argmax(self.feedforward(x)) == y) for (x, y) in te_d])
-        return matches * 1.0 / len(te_d)
+    def evaluate(self, test_data):
+        matches = sum([int(np.argmax(self.feedforward(x)) == y) for (x, y) in test_data])
+        return matches * 1.0 / len(test_data)
 
-    def select_mini_batches(self, tr_d, mb_len):
-        random.shuffle(tr_d)
-        return [tr_d[k:k+mb_len] for k in xrange(0,len(tr_d),mb_len)]
+    def select_mini_batches(self, training_data, mini_batch_size):
+        random.shuffle(training_data)
+        return [training_data[k:k+mini_batch_size] for k in xrange(0,len(training_data),mini_batch_size)]
 
-    def update_mini_batch(self, mini_batch, eta, lmbda, n):
+    def update_mini_batch(self, mini_batch, learning_rate, lmbda, n):
         nabla_w, nabla_b = self.gradient(mini_batch)
-        eps = eta/len(mini_batch)
-        self.weights = [ (1-eta*(lmbda/n))*w - eps*nw for w, nw in zip(self.weights, nabla_w) ]
+        eps = learning_rate/len(mini_batch)
+        self.weights = [ (1-learning_rate*(lmbda/n))*w - eps*nw for w, nw in zip(self.weights, nabla_w) ]
         self.biases = [ b - eps*nb for b, nb in zip(self.biases, nabla_b)]
         return
 
@@ -101,3 +105,6 @@ def sigmoid_prime(z):
 
 sigmoid_prime_vec = np.vectorize(sigmoid_prime)
 
+def printi(str):
+    stdout.write("\r" + str)
+    stdout.flush()

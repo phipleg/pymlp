@@ -2,8 +2,12 @@ import mlp
 import mnist
 
 def main():
-    tr_d, va_d, te_d = mnist.load()
+    training_data, validation_data, test_data = mnist.load()
     net = mlp.MLP([784,30,10])
-    net.sgd(tr_d,300,10,te_d, 0.5, 5.0)
+    epochs = 30
+    mini_batch_size = 10
+    learning_rate = 0.5
+    lmbda = 5.0
+    net.sgd(training_data, epochs, mini_batch_size, test_data, learning_rate, lmbda)
 
 if __name__ == "__main__": main()
