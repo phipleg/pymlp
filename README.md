@@ -1,5 +1,5 @@
 # pymlp
-Multilayer perceptron in Python implementation with MNIST digit classification and Reuters Topic classification example.
+Multilayer perceptron in Python with MNIST digit classification and Reuters Topic classification example.
 
 Implementation of a multilayer perceptron with stochastic gradient descent applied on the cross-entropy cost function with L2 regularization.
 
