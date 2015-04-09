@@ -12,6 +12,8 @@ class MLP():
         self.sizes = sizes
         self.biases = [np.random.randn(y,1) for y in sizes[1:]]
         self.weights = [np.random.randn(y,x) for x,y in zip(sizes[:-1],sizes[1:])]
+        self.biases_v = [np.zeros((y,1)) for y in sizes[1:]]
+        self.weights_v = [np.zeros((y,x)) for x,y in zip(sizes[:-1], sizes[1:])]
         print "MLP net={}".format(self.sizes)
 
     def feedforward(self, a):
@@ -21,25 +23,37 @@ class MLP():
         return a
 
     def sgd(self, training_data, epochs, mini_batch_size, test_data, learning_rate, lmbda=0.0):
+        self.durations = np.array([])
+        self.t0 = time.time()
         print "SGD. epochs={}, learning_rate={}, l2reg={}, mini_batch_size={}".format(epochs, learning_rate,lmbda, mini_batch_size)
+        if test_data:
+            print "Init test error={}".format(self.evaluate(test_data))
         for epidx in xrange(epochs):
-            self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, test_data, learning_rate, lmbda)
+            self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda)
+            if test_data:
+                print "Test error={}".format(self.evaluate(test_data))
 
-    def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, test_data, learning_rate, lmbda):
+    def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda):
         n = len(training_data)
         mini_batches = self.select_mini_batches(training_data, mini_batch_size)
         counter = 0
+        t1 = time.time()
+        duration = 0
         for idx, mini_batch in enumerate(mini_batches):
             self.update_mini_batch(mini_batch, learning_rate, lmbda, n)
             counter += len(mini_batch)
-            printi("Epoch {}/{}. Train {}/{}. ".format(epidx+1, epochs, counter,n))
-        if test_data:
-            acc = self.evaluate(test_data)
-            print "Test accuracy={}".format(acc)
+            t = time.time()
+            ep_duration = t - t1
+            progress = counter * 1.0 / n
+            ep_estimate = ep_duration / progress
+            total_progress = ((epidx)*n + counter) * 1.0/(epochs*n)
+            total_duration = t - self.t0
+            total_estimate = total_duration / total_progress
+            printi("T={}s/{}s. t={}/s{}s. Epoch {}/{}. Train {}/{}. ".format(int(total_duration), int(total_estimate), int(ep_duration), int(ep_estimate), epidx+1, epochs, counter,n))
 
     def evaluate(self, test_data):
         matches = sum([int(np.argmax(self.feedforward(x)) == y) for (x, y) in test_data])
-        return matches * 1.0 / len(test_data)
+        return 1.0 - matches * 1.0 / len(test_data)
 
     def select_mini_batches(self, training_data, mini_batch_size):
         random.shuffle(training_data)
@@ -47,9 +61,13 @@ class MLP():
 
     def update_mini_batch(self, mini_batch, learning_rate, lmbda, n):
         nabla_w, nabla_b = self.gradient(mini_batch)
+        m1 = 0.5
+        m2 = 1 - m1
         eps = learning_rate/len(mini_batch)
-        self.weights = [ (1-learning_rate*(lmbda/n))*w - eps*nw for w, nw in zip(self.weights, nabla_w) ]
-        self.biases = [ b - eps*nb for b, nb in zip(self.biases, nabla_b)]
+        self.weights = [ (1-learning_rate*(lmbda/n))*w + w_v for w, w_v in zip(self.weights, self.weights_v) ]
+        self.biases = [ b + b_v for b, b_v in zip(self.biases, self.biases_v)]
+        self.weights_v = [m1 * w_v - m2*eps*nw for w_v, nw in zip(self.weights_v, nabla_w)]
+        self.biases_v = [m1 * b_v - m2*eps*nb for b_v, nb in zip(self.biases_v, nabla_b)]
         return
 
     def gradient(self, mini_batch):

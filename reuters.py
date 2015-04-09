@@ -3,6 +3,7 @@ import cPickle
 import numpy as np
 
 def load(wordlimit=10000):
+    """ load the reuters corpus. max words=48940, categories=46"""
     path = "data/reuters.pkl.gz"
     f = gzip.open(path, "rb")
     X,Y = cPickle.load(f)
