@@ -22,22 +22,31 @@ class MLP():
             a = sigmoid_vec(z)
         return a
 
-    def sgd(self, training_data, epochs, mini_batch_size, test_data, learning_rate, lmbda=0.0):
-        self.durations = np.array([])
+    def sgd(self, training_data, epochs, mini_batch_size, test_data, learning_rate, lmbda=0.0, drop_prob=0.0):
         self.t0 = time.time()
-        print "SGD. epochs={}, learning_rate={}, l2reg={}, mini_batch_size={}".format(epochs, learning_rate,lmbda, mini_batch_size)
+        print "SGD. epochs={}, mini_batch_size={}, learning_rate={}, l2reg={}, dropout_probability={}".format(epochs, mini_batch_size, learning_rate,lmbda, drop_prob)
         if test_data:
-            print "Init test error={}".format(self.evaluate(test_data))
+            print "Initial test error={}".format(self.evaluate(test_data))
         for epidx in xrange(epochs):
-            self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda)
+            self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob)
             if test_data:
                 print "Test error={}".format(self.evaluate(test_data))
 
-    def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda):
-        n = len(training_data)
-        mini_batches = self.select_mini_batches(training_data, mini_batch_size)
-        counter = 0
+    def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob):
         t1 = time.time()
+
+        self.weights_dropout = [ np.ones((y,x)) for x,y in zip(self.sizes[:-1], self.sizes[1:])]
+        for w_drop in self.weights_dropout:
+            y = w_drop.shape[0]
+            w_drop[np.random.random_integers(0,y-1,drop_prob*y),:]=0
+        self.biases_dropout = [ np.ones((y,1)) for y in self.sizes[1:]]
+        for b_drop in self.biases_dropout:
+            y = b_drop.shape[0]
+            b_drop[np.random.random_integers(0,y-1,drop_prob*y)]=0
+
+        mini_batches = self.select_mini_batches(training_data, mini_batch_size)
+        n = len(training_data)
+        counter = 0
         duration = 0
         for idx, mini_batch in enumerate(mini_batches):
             self.update_mini_batch(mini_batch, learning_rate, lmbda, n)
@@ -64,8 +73,8 @@ class MLP():
         m1 = 0.5
         m2 = 1 - m1
         eps = learning_rate/len(mini_batch)
-        self.weights = [ (1-learning_rate*(lmbda/n))*w + w_v for w, w_v in zip(self.weights, self.weights_v) ]
-        self.biases = [ b + b_v for b, b_v in zip(self.biases, self.biases_v)]
+        self.weights = [ w + (w_v - learning_rate*(lmbda/n)*w)*w_drop for w, w_v, w_drop in zip(self.weights, self.weights_v, self.weights_dropout) ]
+        self.biases = [ b + b_v*b_drop for b, b_v, b_drop in zip(self.biases, self.biases_v, self.biases_dropout)]
         self.weights_v = [m1 * w_v - m2*eps*nw for w_v, nw in zip(self.weights_v, nabla_w)]
         self.biases_v = [m1 * b_v - m2*eps*nb for b_v, nb in zip(self.biases_v, nabla_b)]
         return

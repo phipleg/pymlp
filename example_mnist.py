@@ -3,11 +3,12 @@ import mnist
 
 def main():
     training_data, validation_data, test_data = mnist.load()
-    net = mlp.MLP([784,30,10])
-    epochs = 30
+    net = mlp.MLP([784,200,30,10])
+    epochs = 500
     mini_batch_size = 10
-    learning_rate = 0.5
+    learning_rate = 0.1
     lmbda = 5.0
-    net.sgd(training_data, epochs, mini_batch_size, test_data, learning_rate, lmbda)
+    drop_prob = 0.5
+    net.sgd(training_data, epochs, mini_batch_size, test_data, learning_rate, lmbda, drop_prob)
 
 if __name__ == "__main__": main()
