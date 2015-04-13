@@ -30,7 +30,7 @@ class MLP():
         for epidx in xrange(epochs):
             self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob)
             if test_data:
-                print "Test error={}".format(self.evaluate(test_data))
+                print " Test error={}".format(self.evaluate(test_data))
 
     def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob):
         t1 = time.time()
@@ -58,7 +58,7 @@ class MLP():
             total_progress = ((epidx)*n + counter) * 1.0/(epochs*n)
             total_duration = t - self.t0
             total_estimate = total_duration / total_progress
-            printi("T={}s/{}s. t={}/s{}s. Epoch {}/{}. Train {}/{}. ".format(int(total_duration), int(total_estimate), int(ep_duration), int(ep_estimate), epidx+1, epochs, counter,n))
+            printi("[{:3.1f}%] T={}/{}. t={}/{}. Epoch={}/{}. Train={}/{}.{}".format(total_progress*100, to_ht(total_duration), to_ht(total_estimate), to_ht(ep_duration), to_ht(ep_estimate), epidx+1, epochs, counter, n, bar(progress)))
 
     def evaluate(self, test_data):
         matches = sum([int(np.argmax(self.feedforward(x)) == y) for (x, y) in test_data])
@@ -135,3 +135,27 @@ sigmoid_prime_vec = np.vectorize(sigmoid_prime)
 def printi(str):
     stdout.write("\r" + str)
     stdout.flush()
+
+def to_ht(seconds):
+    if seconds <= 60:
+        return "{:2.0f}s".format(seconds)
+    if seconds <= 60*60:
+        return "{:2.1f}m".format(seconds / 60.0)
+    if seconds <= 60*60*24:
+        return "{:2.1f}h".format(seconds / (60.0 * 60))
+    return "{:.1f}d".format(seconds / (60.0 * 60 * 24))
+
+def bar(x):
+    width = 20
+    xi = int(x*width)
+    if xi == width:
+        return ""
+    s = "["
+    for i in xrange(xi):
+        s += '='
+    s += ">"
+    for i in xrange(xi+1, width):
+        s += '-'
+    s += "]"
+    return s
+   
