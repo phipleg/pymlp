@@ -3,6 +3,10 @@
 import numpy as np
 import random
 import time
+
+import matplotlib.pyplot as plt
+import plt_pixels
+
 from sys import stdout
 
 class MLP():
@@ -14,7 +18,11 @@ class MLP():
         self.weights = [np.random.randn(y,x) for x,y in zip(sizes[:-1],sizes[1:])]
         self.biases_v = [np.zeros((y,1)) for y in sizes[1:]]
         self.weights_v = [np.zeros((y,x)) for x,y in zip(sizes[:-1], sizes[1:])]
+        # self.confusion_plot = cp.ConfusionPlot()
         print "MLP net={}".format(self.sizes)
+        plt.ion()
+        plt.show()
+        self.fig = plt.figure(num=None, figsize=(12, 6), dpi=80)
 
     def feedforward(self, a):
         for w,b in zip(self.weights, self.biases):
@@ -61,7 +69,21 @@ class MLP():
             printi("T={}s/{}s. t={}/s{}s. Epoch {}/{}. Train {}/{}. ".format(int(total_duration), int(total_estimate), int(ep_duration), int(ep_estimate), epidx+1, epochs, counter,n))
 
     def evaluate(self, test_data):
-        matches = sum([int(np.argmax(self.feedforward(x)) == y) for (x, y) in test_data])
+        plt.clf()
+        ax_input = self.fig.add_subplot(121)
+        ax_hidden = self.fig.add_subplot(122)
+        plt_pixels.draw_pixels(self.fig, ax_input, self.weights[0], [28,28], [6,6])
+        plt_pixels.draw_pixels(self.fig, ax_hidden, self.weights[1], [6,6], [1, 10])
+        plt.draw()
+        matches = 0
+        d = self.sizes[-1]
+        conf_matrix = np.zeros((d,d))
+        for (x,y) in test_data:
+            z = int(np.argmax(self.feedforward(x)))
+            if y == z:
+                matches += 1
+            conf_matrix[y][z] += 1
+        # matches = sum([int(np.argmax(self.feedforward(x)) == y) for (x, y) in test_data])
         return 1.0 - matches * 1.0 / len(test_data)
 
     def select_mini_batches(self, training_data, mini_batch_size):
