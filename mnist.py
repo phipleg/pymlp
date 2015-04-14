@@ -1,6 +1,5 @@
 import cPickle
 import gzip
-
 import numpy as np
 
 def load():
@@ -20,3 +19,7 @@ def vectorized_result(j):
     e = np.zeros((10, 1))
     e[j] = 1.0
     return e
+
+if __name__ == "__main__":
+    training_data, validation_data, test_data = load()
+    print "MNIST corpus. training={}, validation={}, test={}".format(len(training_data), len(validation_data), len(test_data))
