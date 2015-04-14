@@ -2,7 +2,7 @@ import mlp
 import reuters
 
 def main():
-    words = 20000
+    words = 900
     training_data, validation_data, test_data = reuters.load(words)
     net = mlp.MLP([words,80,46])
     epochs = 200

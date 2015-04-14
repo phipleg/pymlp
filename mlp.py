@@ -4,10 +4,11 @@ import numpy as np
 import random
 import time
 
+import printutils as pu
+
 import matplotlib.pyplot as plt
 import plt_pixels
-
-from sys import stdout
+import plt_confusion
 
 class MLP():
     """ Multilayer perceptron """
@@ -18,11 +19,10 @@ class MLP():
         self.weights = [np.random.randn(y,x) for x,y in zip(sizes[:-1],sizes[1:])]
         self.biases_v = [np.zeros((y,1)) for y in sizes[1:]]
         self.weights_v = [np.zeros((y,x)) for x,y in zip(sizes[:-1], sizes[1:])]
-        # self.confusion_plot = cp.ConfusionPlot()
         print "MLP net={}".format(self.sizes)
         plt.ion()
         plt.show()
-        self.fig = plt.figure(num=None, figsize=(12, 6), dpi=80)
+        self.fig = plt.figure(num=None, figsize=(14, 6), dpi=80)
 
     def feedforward(self, a):
         for w,b in zip(self.weights, self.biases):
@@ -34,11 +34,24 @@ class MLP():
         self.t0 = time.time()
         print "SGD. epochs={}, mini_batch_size={}, learning_rate={}, l2reg={}, dropout_probability={}".format(epochs, mini_batch_size, learning_rate,lmbda, drop_prob)
         if test_data:
-            print "Initial test error={}".format(self.evaluate(test_data))
+            print "Initial acc={}".format(self.evaluate(test_data)[0])
         for epidx in xrange(epochs):
             self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob)
             if test_data:
-                print " Test error={}".format(self.evaluate(test_data))
+                acc, conf_matrix =  self.evaluate(test_data)
+                print " Test acc={}".format(acc)
+                plt.clf()
+                ax_count = len(self.sizes)
+                ax_conf = self.fig.add_subplot(1,ax_count,1)
+                ax_conf.set_title("Confusion matrix")
+                plt_confusion.draw_confusion_matrix(self.fig, ax_conf, conf_matrix)
+                for i, (x,y) in enumerate(zip(self.sizes[:-1], self.sizes[1:])):
+                    xx = int(np.ceil(np.sqrt(x)))
+                    yy = int(np.ceil(np.sqrt(y)))
+                    ax = self.fig.add_subplot(1,ax_count,i+2)
+                    ax.set_title("{}. layer weights".format(i+1))
+                    plt_pixels.draw_pixels(self.fig, ax, self.weights[i], [xx,xx], [yy,yy])
+                plt.draw()
 
     def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob):
         t1 = time.time()
@@ -66,15 +79,9 @@ class MLP():
             total_progress = ((epidx)*n + counter) * 1.0/(epochs*n)
             total_duration = t - self.t0
             total_estimate = total_duration / total_progress
-            printi("[{:3.1f}%] T={}/{}. t={}/{}. Epoch={}/{}. Train={}/{}.{}".format(total_progress*100, to_ht(total_duration), to_ht(total_estimate), to_ht(ep_duration), to_ht(ep_estimate), epidx+1, epochs, counter, n, bar(progress)))
+            pu.printi("[{:3.1f}%] {} T={}/{}. t={}/{}. Epoch={}/{}. Train={}/{}.".format(total_progress*100, pu.bar(progress), pu.to_ht(total_duration), pu.to_ht(total_estimate), pu.to_ht(ep_duration), pu.to_ht(ep_estimate), epidx+1, epochs, counter, n))
 
     def evaluate(self, test_data):
-        plt.clf()
-        ax_input = self.fig.add_subplot(121)
-        ax_hidden = self.fig.add_subplot(122)
-        plt_pixels.draw_pixels(self.fig, ax_input, self.weights[0], [28,28], [6,6])
-        plt_pixels.draw_pixels(self.fig, ax_hidden, self.weights[1], [6,6], [1, 10])
-        plt.draw()
         matches = 0
         d = self.sizes[-1]
         conf_matrix = np.zeros((d,d))
@@ -84,7 +91,7 @@ class MLP():
                 matches += 1
             conf_matrix[y][z] += 1
         # matches = sum([int(np.argmax(self.feedforward(x)) == y) for (x, y) in test_data])
-        return 1.0 - matches * 1.0 / len(test_data)
+        return matches * 1.0 / len(test_data), conf_matrix
 
     def select_mini_batches(self, training_data, mini_batch_size):
         random.shuffle(training_data)
@@ -154,30 +161,3 @@ def sigmoid_prime(z):
 
 sigmoid_prime_vec = np.vectorize(sigmoid_prime)
 
-def printi(str):
-    stdout.write("\r" + str)
-    stdout.flush()
-
-def to_ht(seconds):
-    if seconds <= 60:
-        return "{:2.0f}s".format(seconds)
-    if seconds <= 60*60:
-        return "{:2.1f}m".format(seconds / 60.0)
-    if seconds <= 60*60*24:
-        return "{:2.1f}h".format(seconds / (60.0 * 60))
-    return "{:.1f}d".format(seconds / (60.0 * 60 * 24))
-
-def bar(x):
-    width = 20
-    xi = int(x*width)
-    if xi == width:
-        return ""
-    s = "["
-    for i in xrange(xi):
-        s += '='
-    s += ">"
-    for i in xrange(xi+1, width):
-        s += '-'
-    s += "]"
-    return s
-   
