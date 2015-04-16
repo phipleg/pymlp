@@ -37,21 +37,20 @@ class MLP():
             print "Initial acc={}".format(self.evaluate(test_data)[0])
         for epidx in xrange(epochs):
             self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob)
-            if test_data:
-                acc, conf_matrix =  self.evaluate(test_data)
-                print " Test acc={}".format(acc)
-                plt.clf()
-                ax_count = len(self.sizes)
-                ax_conf = self.fig.add_subplot(1,ax_count,1)
-                ax_conf.set_title("Confusion matrix")
-                plt_confusion.draw_confusion_matrix(self.fig, ax_conf, conf_matrix)
-                for i, (x,y) in enumerate(zip(self.sizes[:-1], self.sizes[1:])):
-                    xx = int(np.ceil(np.sqrt(x)))
-                    yy = int(np.ceil(np.sqrt(y)))
-                    ax = self.fig.add_subplot(1,ax_count,i+2)
-                    ax.set_title("{}. layer weights".format(i+1))
-                    plt_pixels.draw_pixels(self.fig, ax, self.weights[i], [xx,xx], [yy,yy])
-                plt.draw()
+            acc, conf_matrix =  self.evaluate(test_data)
+            print " Test acc={}".format(acc)
+            plt.clf()
+            ax_count = len(self.sizes)
+            ax_conf = self.fig.add_subplot(1,ax_count,1)
+            ax_conf.set_title("Confusion matrix")
+            plt_confusion.draw_confusion_matrix(self.fig, ax_conf, conf_matrix)
+            for i, (x,y) in enumerate(zip(self.sizes[:-1], self.sizes[1:])):
+                xx = int(np.ceil(np.sqrt(x)))
+                yy = int(np.ceil(np.sqrt(y)))
+                ax = self.fig.add_subplot(1,ax_count,i+2)
+                ax.set_title("{}. layer weights".format(i+1))
+                plt_pixels.draw_pixels(self.fig, ax, self.weights[i], [xx,xx], [yy,yy])
+            plt.draw()
 
     def sgd_epoch(self, training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob):
         t1 = time.time()
