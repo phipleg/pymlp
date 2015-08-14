@@ -38,7 +38,7 @@ class MLP():
         for epidx in xrange(epochs):
             self.sgd_epoch( training_data, epochs, epidx, mini_batch_size, learning_rate, lmbda, drop_prob)
             acc, conf_matrix =  self.evaluate(test_data)
-            print " Test acc={}".format(acc)
+            print " Test acc={:3.3f}".format(acc)
             plt.clf()
             ax_count = len(self.sizes)
             ax_conf = self.fig.add_subplot(1,ax_count,1)
